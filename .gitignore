@@ -1,0 +1,9 @@
+.python-version
+venv
+__pycache__
+tests/__pycache__
+.pytest_cache
+.mypy_cache
+*.json
+.tox
+.coverage
