@@ -22,7 +22,7 @@ Configuration variables are set in [config.json](config.json), which resides at 
     "cookie_domain": ""
 }
 ```
-The app contacts `url_oidc` on startup and retrieves the `authorization_endpoint`, `token_endpoint` and `revocation_endpoint` values, which are used at `/login`, `/callback` and `/logout` respectively.
+The app contacts `url_oidc` on startup and retrieves the `authorization_endpoint`, `token_endpoint`, `revocation_endpoint` and `userinfo_endpoint` values, which are used at `/login`, `/callback`, `/logout` and `/userinfo` respectively.
 
 
 ### Environment Variables

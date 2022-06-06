@@ -52,6 +52,7 @@ async def startup_event():
             CONFIG["url_auth"] = data.get("authorization_endpoint", "")
             CONFIG["url_token"] = data.get("token_endpoint", "")
             CONFIG["url_revoke"] = data.get("revocation_endpoint", "")
+            CONFIG["url_userinfo"] = data.get("userinfo_endpoint", "")
             LOG.debug(f"new config: {CONFIG}")
         else:
             # we can't proceed without these URLs
@@ -262,3 +263,26 @@ async def token_endpoint(id_token: str = Cookie(""), access_token: str = Cookie(
     }
 
     return JSONResponse(response)
+
+
+@app.get("/userinfo")
+async def token_endpoint(access_token: str = Cookie("")):
+    LOG.debug("fetch userinfo from AAI")
+
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+    }
+
+    async with httpx.AsyncClient(headers=headers, verify=False) as client:
+        # request tokens
+        LOG.debug("requesting userinfo")
+        response = await client.post(CONFIG["url_userinfo"])
+        if response.status_code == 200:
+            # return userinfo content
+            LOG.debug("received userinfo")
+            r = response.json()
+            return r
+        else:
+            # if something went wrong on the provider side, we need to abort
+            LOG.error(f"didn't receive userinfo from OpenID provider: {response.status_code}")
+            raise HTTPException(500, f"failed to retrieve userinfo from provider: {response.status_code}")
