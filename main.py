@@ -15,6 +15,7 @@ import httpx
 from fastapi import FastAPI, Cookie
 from fastapi.exceptions import HTTPException
 from fastapi.responses import PlainTextResponse, RedirectResponse, JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 
 # the web app
 app = FastAPI()
@@ -41,6 +42,15 @@ except Exception as e:
 @app.on_event("startup")
 async def startup_event():
     """Request OpenID configuration from OpenID provider."""
+    # add CORS middleware
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=CONFIG["cors_domains"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+    # get missing OIDC configurations
     async with httpx.AsyncClient(verify=False) as client:
         # request OpenID provider endpoints from their configuration
         LOG.debug(f"requesting OpenID configuration from {CONFIG['url_oidc']}")
