@@ -307,8 +307,6 @@ async def token_endpoint(access_token: str = Cookie("")):
                
                 if decoded != "":
                     r["Dataset access"].append(decoded)
-                    r["Dataset access"].append("teststst")
-                    r["Dataset access"].append("teasassda")
                 
                 if decoded == "AcceptedTermsAndPoliciesTrue":
                     passportList.append(decoded)
@@ -319,7 +317,6 @@ async def token_endpoint(access_token: str = Cookie("")):
             else:
                 r["Bona fide status"] = "Unverified"  
             r.pop("given_name", None)
-            r.pop("family_name", None)
             r.pop("family_name", None)
             r.pop("ga4gh_passport_v1", None)
             r["email"] = r["email"], r["email_verified"]
