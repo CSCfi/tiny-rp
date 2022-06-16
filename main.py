@@ -382,7 +382,7 @@ async def get_ga4gh_bona_fide(passports: List) -> bool:
         # CHECK FOR TERMS
         passport_type = passport[2].get("ga4gh_visa_v1", {}).get("type")
         passport_value = passport[2].get("ga4gh_visa_v1", {}).get("value")
-        if passport_type in "AcceptedTermsAndPolicies" and passport_value == "https://doi.org/10.1038/s41431-018-0219-y":
+        if passport_type in "AcceptedTermsAndPolicies" and passport_value == CONFIG["OAUTH2_CONFIG"]:
             # This passport has the correct type and value, next step is to validate it
             #
             # Decode passport and validate its contents
@@ -394,7 +394,7 @@ async def get_ga4gh_bona_fide(passports: List) -> bool:
             terms = True
         #
         # CHECK FOR STATUS
-        if passport_value == "https://doi.org/10.1038/s41431-018-0219-y" and passport_type == "ResearcherStatus":
+        if passport_value == CONFIG["OAUTH2_CONFIG"] and passport_type == "ResearcherStatus":
             # Check if the visa contains a bona fide value
             # This passport has the correct type and value, next step is to validate it
             #
