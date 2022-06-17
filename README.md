@@ -19,7 +19,8 @@ Configuration variables are set in [config.json](config.json), which resides at 
     "url_callback": "http://localhost:8080/callback",
     "url_redirect": "http://localhost:8080/frontend",
     "scope": "openid",
-    "cookie_domain": ""
+    "cookie_domain": "",
+    "cors_domains": [""]
 }
 ```
 The app contacts `url_oidc` on startup and retrieves the `authorization_endpoint`, `token_endpoint`, `revocation_endpoint` and `userinfo_endpoint` values, which are used at `/login`, `/callback`, `/logout` and `/userinfo` respectively.
