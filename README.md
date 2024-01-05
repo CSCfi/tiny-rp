@@ -2,12 +2,11 @@
 Tiny RP is a small OpenID Connect Relying Party client that authenticates the user at the configured OpenID provider and saves the user's `id_token` and `access_token` to cookies.
 
 ## Installation
-- Developed with `python 3.8.5`
+- Developed with `python 3.12.1`
 ```
 pip install --upgrade pip
 pip install -r requirements.txt
 ```
-Dependencies are listed in `requirements.dev.txt`, while versions are set for production in `requirements.txt`.
 
 ## Configuration
 Configuration variables are set in [config.json](config.json), which resides at the root of the directory.

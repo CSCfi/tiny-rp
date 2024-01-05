@@ -7,7 +7,6 @@ import secrets
 import logging
 
 from urllib.parse import urlencode
-from distutils.util import strtobool
 from typing import Tuple
 
 import httpx
@@ -17,12 +16,30 @@ from fastapi.exceptions import HTTPException
 from fastapi.responses import PlainTextResponse, RedirectResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
-# the web app
-app = FastAPI()
+
+# distutils.util.strtobool was deprecated in python 3.12 here is the source code for the simple function
+# https://github.com/pypa/distutils/blob/94942032878d431cee55adaab12a8bd83549a833/distutils/util.py#L340-L353
+def strtobool(val):
+    """Convert a string representation of truth to true (1) or false (0).
+
+    True values are 'y', 'yes', 't', 'true', 'on', and '1'; false values
+    are 'n', 'no', 'f', 'false', 'off', and '0'.  Raises ValueError if
+    'val' is anything else.
+    """
+    val = val.lower()
+    if val in ("y", "yes", "t", "true", "on", "1"):
+        return 1
+    elif val in ("n", "no", "f", "false", "off", "0"):
+        return 0
+    else:
+        raise ValueError("invalid truth value {!r}".format(val))
+
 
 # logging
-formatting = '[%(asctime)s][%(name)s][%(process)d %(processName)s][%(levelname)-8s] (L:%(lineno)s) %(module)s | %(funcName)s: %(message)s'
-logging.basicConfig(level=logging.DEBUG if bool(strtobool(os.environ.get('DEBUG', 'False'))) else logging.INFO, format=formatting)
+formatting = "[%(asctime)s][%(name)s][%(process)d %(processName)s][%(levelname)-8s] (L:%(lineno)s) %(module)s | %(funcName)s: %(message)s"
+logging.basicConfig(
+    level=logging.DEBUG if bool(strtobool(os.environ.get("DEBUG", "False"))) else logging.INFO, format=formatting
+)
 LOG = logging.getLogger("tiny-rp")
 
 # configuration
@@ -39,22 +56,11 @@ except Exception as e:
     sys.exit(e)
 
 
-@app.on_event("startup")
-async def startup_event():
+def get_configs():
     """Request OpenID configuration from OpenID provider."""
-    # add CORS middleware
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=CONFIG["cors_domains"],
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
-    # get missing OIDC configurations
-    async with httpx.AsyncClient(verify=False) as client:
-        # request OpenID provider endpoints from their configuration
+    with httpx.Client(verify=False) as client:
         LOG.debug(f"requesting OpenID configuration from {CONFIG['url_oidc']}")
-        response = await client.get(CONFIG["url_oidc"])
+        response = client.get(CONFIG["url_oidc"])
         if response.status_code == 200:
             # store URLs for later use
             LOG.debug("OpenID configuration received")
@@ -68,6 +74,20 @@ async def startup_event():
             # we can't proceed without these URLs
             LOG.error(f"failed to request OpenID configuration: {response.status_code}")
             sys.exit(f"failed to retrieve OIDC configuration: {response.status_code}")
+
+
+get_configs()
+
+# the web app
+app = FastAPI()
+# add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=CONFIG["cors_domains"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @app.get("/")
@@ -91,7 +111,7 @@ async def login_endpoint():
         "response_type": "code",
         "state": state,
         "redirect_uri": CONFIG["url_callback"],
-        "scope": CONFIG["scope"]
+        "scope": CONFIG["scope"],
     }
 
     # prepare the redirection response
@@ -100,12 +120,9 @@ async def login_endpoint():
     response = RedirectResponse(url)
 
     # store state cookie for callback verification
-    response.set_cookie(key="oidc_state",
-                        value=state,
-                        max_age=300,
-                        httponly=True,
-                        secure=True,
-                        domain=CONFIG.get("cookie_domain", None))
+    response.set_cookie(
+        key="oidc_state", value=state, max_age=300, httponly=True, secure=True, domain=CONFIG.get("cookie_domain", None)
+    )
 
     # redirect user to sign in at OpenID provider
     LOG.debug("redirecting to OpenID provider")
@@ -158,24 +175,30 @@ async def callback_endpoint(oidc_state: str = Cookie(""), state: str = "", code:
         response = RedirectResponse(CONFIG["url_redirect"])
 
         # store tokens to cookies
-        response.set_cookie(key="id_token",
-                            value=id_token,
-                            max_age=3600,
-                            httponly=True,
-                            secure=True,
-                            domain=CONFIG.get("cookie_domain", None))
-        response.set_cookie(key="access_token",
-                            value=access_token,
-                            max_age=3600,
-                            httponly=True,
-                            secure=True,
-                            domain=CONFIG.get("cookie_domain", None))
-        response.set_cookie(key="logged_in",
-                            value="True",
-                            max_age=3600,
-                            httponly=False,
-                            secure=True,
-                            domain=CONFIG.get("cookie_domain", None))
+        response.set_cookie(
+            key="id_token",
+            value=id_token,
+            max_age=3600,
+            httponly=True,
+            secure=True,
+            domain=CONFIG.get("cookie_domain", None),
+        )
+        response.set_cookie(
+            key="access_token",
+            value=access_token,
+            max_age=3600,
+            httponly=True,
+            secure=True,
+            domain=CONFIG.get("cookie_domain", None),
+        )
+        response.set_cookie(
+            key="logged_in",
+            value="True",
+            max_age=3600,
+            httponly=False,
+            secure=True,
+            domain=CONFIG.get("cookie_domain", None),
+        )
 
         # redirect user
         LOG.debug(f"redirecting to {CONFIG['url_redirect']}")
@@ -194,24 +217,15 @@ async def logout_endpoint(id_token: str = Cookie(""), access_token: str = Cookie
     response = RedirectResponse(CONFIG["url_redirect"])
 
     # overwrite cookies with instantly expiring ones
-    response.set_cookie(key="id_token",
-                        value="",
-                        max_age=0,
-                        httponly=True,
-                        secure=True,
-                        domain=CONFIG.get("cookie_domain", None))
-    response.set_cookie(key="access_token",
-                        value="",
-                        max_age=0,
-                        httponly=True,
-                        secure=True,
-                        domain=CONFIG.get("cookie_domain", None))
-    response.set_cookie(key="logged_in",
-                        value="",
-                        max_age=0,
-                        httponly=False,
-                        secure=True,
-                        domain=CONFIG.get("cookie_domain", None))
+    response.set_cookie(
+        key="id_token", value="", max_age=0, httponly=True, secure=True, domain=CONFIG.get("cookie_domain", None)
+    )
+    response.set_cookie(
+        key="access_token", value="", max_age=0, httponly=True, secure=True, domain=CONFIG.get("cookie_domain", None)
+    )
+    response.set_cookie(
+        key="logged_in", value="", max_age=0, httponly=False, secure=True, domain=CONFIG.get("cookie_domain", None)
+    )
 
     # redirect user
     LOG.debug(f"redirecting to {CONFIG['url_redirect']}")
@@ -225,11 +239,7 @@ async def request_tokens(code: str) -> Tuple[str, str]:
     # set up basic auth and payload
     auth = httpx.BasicAuth(username=CONFIG["client_id"], password=CONFIG["client_secret"])
     LOG.debug("basic auth is set")
-    data = {
-        "grant_type": "authorization_code",
-        "code": code,
-        "redirect_uri": CONFIG["url_callback"]
-    }
+    data = {"grant_type": "authorization_code", "code": code, "redirect_uri": CONFIG["url_callback"]}
     LOG.debug(f"post payload: {data}")
 
     async with httpx.AsyncClient(auth=auth, verify=False) as client:

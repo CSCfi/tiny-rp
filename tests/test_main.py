@@ -14,7 +14,7 @@ MOCK_CONFIG = {
     "url_callback": "http://localhost:8080/callback",
     "url_redirect": "",
     "scope": "openid",
-    "cookie_domain": ""
+    "cookie_domain": "",
 }
 
 

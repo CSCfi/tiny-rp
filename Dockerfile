@@ -1,4 +1,4 @@
-FROM python:3.8-alpine3.13 as BUILD
+FROM python:3.12.1-alpine3.19 as BUILD
 
 RUN apk add --update \
     && apk add --no-cache --virtual build-base libressl-dev libffi-dev gcc musl-dev python3-dev \
@@ -9,11 +9,11 @@ COPY requirements.txt /root/requirements.txt
 RUN pip install --upgrade pip && \
     pip install -r /root/requirements.txt
 
-FROM python:3.8-alpine3.13
+FROM python:3.12.1-alpine3.19
 
 RUN apk add --no-cache --update bash
 
-COPY --from=BUILD /usr/local/lib/python3.8/ /usr/local/lib/python3.8/
+COPY --from=BUILD /usr/local/lib/python3.12/ /usr/local/lib/python3.12/
 
 COPY --from=BUILD /usr/local/bin/uvicorn /usr/local/bin/
 
