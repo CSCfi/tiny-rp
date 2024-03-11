@@ -286,7 +286,7 @@ async def token_endpoint(id_token: str = Cookie(""), access_token: str = Cookie(
 
 
 @app.get("/userinfo")
-async def token_endpoint(access_token: str = Cookie("")):
+async def userinfo_endpoint(access_token: str = Cookie("")):
     LOG.debug("fetch userinfo from AAI")
 
     headers = {
