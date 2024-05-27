@@ -112,6 +112,7 @@ async def login_endpoint():
         "state": state,
         "redirect_uri": CONFIG["url_callback"],
         "scope": CONFIG["scope"],
+        "resource": CONFIG["resource"],
     }
 
     # prepare the redirection response
