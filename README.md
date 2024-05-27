@@ -18,6 +18,7 @@ Configuration variables are set in [config.json](config.json), which resides at 
     "url_callback": "http://localhost:8080/callback",
     "url_redirect": "http://localhost:8080/frontend",
     "scope": "openid",
+    "resource": "something",
     "cookie_domain": "",
     "cors_domains": [""]
 }
