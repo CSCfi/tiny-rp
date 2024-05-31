@@ -112,8 +112,10 @@ async def login_endpoint():
         "state": state,
         "redirect_uri": CONFIG["url_callback"],
         "scope": CONFIG["scope"],
-        "resource": CONFIG["resource"],
     }
+    # optional param for special cases
+    if "resource" in CONFIG:
+        params["resource"] = CONFIG["resource"]
 
     # prepare the redirection response
     url = CONFIG["url_auth"] + "?" + urlencode(params)
