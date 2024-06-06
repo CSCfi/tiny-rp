@@ -38,6 +38,8 @@ The app contacts `url_oidc` on startup and retrieves the `authorization_endpoint
 uvicorn main:app --reload
 ```
 ### For Deployment
+The docker image copies `config.json` from the current directory, so either edit the values before building the image, or mount a file with correct values into the container.
+
 Build image
 ```
 docker build -t cscfi/tiny-rp .
