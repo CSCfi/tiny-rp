@@ -278,6 +278,9 @@ async def revoke_token(token: str) -> None:
     """Request token revocation at AAI."""
     LOG.debug("revoking token")
 
+    if not CONFIG["url_revoke"]:
+        # some AAI systems might not provide a revocation endpoint
+        return
     auth = httpx.BasicAuth(username=CONFIG["client_id"], password=CONFIG["client_secret"])
     params = {"token": token}
 
