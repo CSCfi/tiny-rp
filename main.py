@@ -55,10 +55,12 @@ except Exception as e:
     LOG.error(f"failed to load configuration file {config_file}, {e}")
     sys.exit(e)
 
+DEFAULT_TIMEOUT = httpx.Timeout(15.0, read=60.0)
+
 
 def get_configs():
     """Request OpenID configuration from OpenID provider."""
-    with httpx.Client(verify=False) as client:
+    with httpx.Client(verify=False, timeout=DEFAULT_TIMEOUT) as client:
         LOG.debug(f"requesting OpenID configuration from {CONFIG['url_oidc']}")
         response = client.get(CONFIG["url_oidc"])
         if response.status_code == 200:
@@ -258,7 +260,7 @@ async def request_tokens(code: str) -> Tuple[str, str]:
     data = {"grant_type": "authorization_code", "code": code, "redirect_uri": CONFIG["url_callback"]}
     LOG.debug(f"post payload: {data}")
 
-    async with httpx.AsyncClient(auth=auth, verify=False) as client:
+    async with httpx.AsyncClient(auth=auth, verify=False, timeout=DEFAULT_TIMEOUT) as client:
         # request tokens
         LOG.debug("requesting tokens to: %r, with data %r", CONFIG["url_token"], data)
         
@@ -284,7 +286,7 @@ async def revoke_token(token: str) -> None:
     auth = httpx.BasicAuth(username=CONFIG["client_id"], password=CONFIG["client_secret"])
     params = {"token": token}
 
-    async with httpx.AsyncClient(auth=auth, verify=False) as client:
+    async with httpx.AsyncClient(auth=auth, verify=False, timeout=DEFAULT_TIMEOUT) as client:
         # send request to AAI
         response = await client.get(CONFIG["url_revoke"] + "?" + urlencode(params))
         if response.status_code == 200:
@@ -313,7 +315,7 @@ async def userinfo_endpoint(access_token: str = Cookie("")):
         "Authorization": f"Bearer {access_token}",
     }
 
-    async with httpx.AsyncClient(headers=headers, verify=False) as client:
+    async with httpx.AsyncClient(headers=headers, verify=False, timeout=DEFAULT_TIMEOUT) as client:
         # request tokens
         LOG.debug("requesting userinfo")
         response = await client.post(CONFIG["url_userinfo"])
