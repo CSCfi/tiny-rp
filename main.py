@@ -260,7 +260,8 @@ async def request_tokens(code: str) -> Tuple[str, str]:
 
     async with httpx.AsyncClient(auth=auth, verify=False) as client:
         # request tokens
-        LOG.debug("requesting tokens")
+        LOG.debug("requesting tokens to: %r, with data %r", CONFIG["url_token"], data)
+        
         response = await client.post(CONFIG["url_token"], data=data)
         if response.status_code == 200:
             # return token strings
@@ -269,7 +270,7 @@ async def request_tokens(code: str) -> Tuple[str, str]:
             return r["id_token"], r["access_token"]
         else:
             # if something went wrong on the provider side, we need to abort
-            LOG.error(f"didn't receive tokens from OpenID provider: {response.status_code}")
+            LOG.error(f"didn't receive tokens from OpenID provider: '{response.status_code}', response: {response.text}")
             raise HTTPException(500, f"failed to retrieve tokens from provider: {response.status_code}")
 
 
