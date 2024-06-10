@@ -13,7 +13,7 @@ import httpx
 
 from fastapi import FastAPI, Cookie
 from fastapi.exceptions import HTTPException
-from fastapi.responses import PlainTextResponse, RedirectResponse, JSONResponse
+from fastapi.responses import RedirectResponse, JSONResponse, HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 
@@ -91,10 +91,23 @@ app.add_middleware(
 
 
 @app.get("/")
-async def index_endpoint():
+async def index_endpoint(id_token: str = Cookie("")):
     """Index can be used as a health check endpoint."""
     LOG.debug("request to index")
-    return PlainTextResponse("tiny-rp")
+    response = """
+            <ul>
+                <li><a href="/login">login</a></li>
+            </ul>
+            """
+    if id_token:
+        response = """
+            <ul>
+                <li><a href="/token">token</a></li>
+                <li><a href="/userinfo">userinfo</a></li>
+                <li><a href="/logout">logout</a></li>
+            </ul>
+            """
+    return HTMLResponse(response)
 
 
 @app.get("/login/")
