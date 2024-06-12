@@ -9,33 +9,19 @@ pip install -r requirements.txt
 ```
 
 ## Configuration
-Configuration variables are set in [config.json](config.json), which resides at the root of the directory.
-```
-{
-    "client_id": "",
-    "client_secret": "",
-    "url_oidc": "https://openid-provider.org/oidc/.well-known/openid-configuration",
-    "url_callback": "http://localhost:8080/callback",
-    "url_redirect": "http://localhost:8080/frontend",
-    "scope": "openid",
-    "resource": "something",
-    "cookie_domain": "",
-    "cors_domains": [""]
-}
-```
+Configuration variables are set as environment variables in a `.env` file. You can start from `.env.example`.
 The app contacts `url_oidc` on startup and retrieves the `authorization_endpoint`, `token_endpoint`, `revocation_endpoint` and `userinfo_endpoint` values, which are used at `/login`, `/callback`, `/logout` and `/userinfo` respectively.
 
-
-### Environment Variables
-- `CONFIG_FILE=config.json` change location of configuration file
-- `DEBUG=True` enable debug logging
+### Environment Variables for the container
 - `APP_HOST=localhost` app hostname that can be passed to container
 - `APP_PORT=8080` app port that can be passed to container
 
 ## Run
 ### For Development
 ```
-uvicorn main:app --reload
+cp .env.example .env # <- make changes
+
+uvicorn main:app --reload --env-file .env
 ```
 ### For Deployment
 The docker image copies `config.json` from the current directory, so either edit the values before building the image, or mount a file with correct values into the container.
@@ -46,7 +32,9 @@ docker build -t cscfi/tiny-rp .
 ```
 Run container
 ```
-docker run -p 8080:8080 cscfi/tiny-rp
+cp .env.example .env # <- make changes
+
+docker run -p 8080:8080 --env-file .env cscfi/tiny-rp
 ```
 
 ## Usage
