@@ -25,8 +25,6 @@ COPY ./deploy/app.sh /app/app.sh
 
 COPY ./main.py /app/main.py
 
-COPY ./config.json /app/config.json
-
 RUN chmod +x /app/app.sh
 
 RUN addgroup -g 1001 app && \

@@ -16,6 +16,23 @@ from fastapi.exceptions import HTTPException
 from fastapi.responses import RedirectResponse, JSONResponse, HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 
+# configuration
+ENV_VARS = {
+    "CLIENT_ID",
+    "CLIENT_SECRET",
+    "URL_OIDC",
+    "URL_CALLBACK",
+    "URL_REDIRECT",
+    "SCOPE",
+    "COOKIE_DOMAIN",
+    "CORS_DOMAINS",
+    "DEBUG",
+}
+# CONFIG will hold environment variables as upper case keys, while later configured variables are lower cased.
+CONFIG = {}
+for env in ENV_VARS:
+    CONFIG[env] = os.environ.get(env, "")
+
 
 # distutils.util.strtobool was deprecated in python 3.12 here is the source code for the simple function
 # https://github.com/pypa/distutils/blob/94942032878d431cee55adaab12a8bd83549a833/distutils/util.py#L340-L353
@@ -38,22 +55,9 @@ def strtobool(val):
 # logging
 formatting = "[%(asctime)s][%(name)s][%(process)d %(processName)s][%(levelname)-8s] (L:%(lineno)s) %(module)s | %(funcName)s: %(message)s"
 logging.basicConfig(
-    level=logging.DEBUG if bool(strtobool(os.environ.get("DEBUG", "False"))) else logging.INFO, format=formatting
+    level=logging.DEBUG if bool(strtobool(CONFIG["DEBUG"])) else logging.INFO, format=formatting
 )
 LOG = logging.getLogger("tiny-rp")
-
-# configuration
-config_file = os.environ.get("CONFIG_FILE", "config.json")
-CONFIG = {}
-try:
-    with open(config_file, "r") as f:
-        LOG.info(f"loading configuration file {config_file}")
-        CONFIG = json.loads(f.read())
-        LOG.info("configuration loaded")
-        LOG.debug(CONFIG)
-except Exception as e:
-    LOG.error(f"failed to load configuration file {config_file}, {e}")
-    sys.exit(e)
 
 DEFAULT_TIMEOUT = httpx.Timeout(15.0, read=60.0)
 
@@ -61,8 +65,8 @@ DEFAULT_TIMEOUT = httpx.Timeout(15.0, read=60.0)
 def get_configs():
     """Request OpenID configuration from OpenID provider."""
     with httpx.Client(verify=False, timeout=DEFAULT_TIMEOUT) as client:
-        LOG.debug(f"requesting OpenID configuration from {CONFIG['url_oidc']}")
-        response = client.get(CONFIG["url_oidc"])
+        LOG.debug(f"requesting OpenID configuration from {CONFIG['URL_OIDC']}")
+        response = client.get(CONFIG["URL_OIDC"])
         if response.status_code == 200:
             # store URLs for later use
             LOG.debug("OpenID configuration received")
@@ -85,7 +89,7 @@ app = FastAPI()
 # add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=CONFIG["cors_domains"],
+    allow_origins=CONFIG["CORS_DOMAINS"].split(";"),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -122,15 +126,15 @@ async def login_endpoint():
     state = secrets.token_hex()
     LOG.debug(f"state: {state}")
     params = {
-        "client_id": CONFIG["client_id"],
+        "client_id": CONFIG["CLIENT_ID"],
         "response_type": "code",
         "state": state,
-        "redirect_uri": CONFIG["url_callback"],
-        "scope": CONFIG["scope"],
+        "redirect_uri": CONFIG["URL_CALLBACK"],
+        "scope": CONFIG["SCOPE"],
     }
     # optional param for special cases
     if "resource" in CONFIG:
-        params["resource"] = CONFIG["resource"]
+        params["resource"] = CONFIG["RESOURCE"]
 
     # prepare the redirection response
     url = CONFIG["url_auth"] + "?" + urlencode(params)
@@ -139,7 +143,7 @@ async def login_endpoint():
 
     # store state cookie for callback verification
     response.set_cookie(
-        key="oidc_state", value=state, max_age=300, httponly=True, secure=True, domain=CONFIG.get("cookie_domain", None)
+        key="oidc_state", value=state, max_age=300, httponly=True, secure=True, domain=CONFIG.get("COOKIE_DOMAIN", None)
     )
 
     # redirect user to sign in at OpenID provider
@@ -181,16 +185,16 @@ async def callback_endpoint(oidc_state: str = Cookie(""), state: str = "", code:
     id_token, access_token = await request_tokens(code)
     LOG.debug(f"id_token={id_token}, access_token={access_token}")
 
-    if CONFIG["url_redirect"] == "":
+    if CONFIG["URL_REDIRECT"] == "":
         # display tokens
         LOG.debug("redirect address is not set, display tokens in JSON")
         return {"id_token": id_token, "access_token": access_token}
     else:
         # save tokens to cookies and redirect
-        LOG.debug(f"save tokens to cookies and redirect user to {CONFIG['url_redirect']}")
+        LOG.debug(f"save tokens to cookies and redirect user to {CONFIG['URL_REDIRECT']}")
 
         # prepare the redirection response
-        response = RedirectResponse(CONFIG["url_redirect"])
+        response = RedirectResponse(CONFIG["URL_REDIRECT"])
 
         # store tokens to cookies
         response.set_cookie(
@@ -199,7 +203,7 @@ async def callback_endpoint(oidc_state: str = Cookie(""), state: str = "", code:
             max_age=3600,
             httponly=True,
             secure=True,
-            domain=CONFIG.get("cookie_domain", None),
+            domain=CONFIG.get("COOKIE_DOMAIN", None),
         )
         response.set_cookie(
             key="access_token",
@@ -207,7 +211,7 @@ async def callback_endpoint(oidc_state: str = Cookie(""), state: str = "", code:
             max_age=3600,
             httponly=True,
             secure=True,
-            domain=CONFIG.get("cookie_domain", None),
+            domain=CONFIG.get("COOKIE_DOMAIN", None),
         )
         response.set_cookie(
             key="logged_in",
@@ -215,11 +219,11 @@ async def callback_endpoint(oidc_state: str = Cookie(""), state: str = "", code:
             max_age=3600,
             httponly=False,
             secure=True,
-            domain=CONFIG.get("cookie_domain", None),
+            domain=CONFIG.get("COOKIE_DOMAIN", None),
         )
 
         # redirect user
-        LOG.debug(f"redirecting to {CONFIG['url_redirect']}")
+        LOG.debug(f"redirecting to {CONFIG['URL_REDIRECT']}")
         return response
 
 
@@ -232,21 +236,21 @@ async def logout_endpoint(id_token: str = Cookie(""), access_token: str = Cookie
     await revoke_token(access_token)
 
     # prepare the redirection response
-    response = RedirectResponse(CONFIG["url_redirect"])
+    response = RedirectResponse(CONFIG["URL_REDIRECT"])
 
     # overwrite cookies with instantly expiring ones
     response.set_cookie(
-        key="id_token", value="", max_age=0, httponly=True, secure=True, domain=CONFIG.get("cookie_domain", None)
+        key="id_token", value="", max_age=0, httponly=True, secure=True, domain=CONFIG.get("COOKIE_DOMAIN", None)
     )
     response.set_cookie(
-        key="access_token", value="", max_age=0, httponly=True, secure=True, domain=CONFIG.get("cookie_domain", None)
+        key="access_token", value="", max_age=0, httponly=True, secure=True, domain=CONFIG.get("COOKIE_DOMAIN", None)
     )
     response.set_cookie(
-        key="logged_in", value="", max_age=0, httponly=False, secure=True, domain=CONFIG.get("cookie_domain", None)
+        key="logged_in", value="", max_age=0, httponly=False, secure=True, domain=CONFIG.get("COOKIE_DOMAIN", None)
     )
 
     # redirect user
-    LOG.debug(f"redirecting to {CONFIG['url_redirect']}")
+    LOG.debug(f"redirecting to {CONFIG['URL_REDIRECT']}")
     return response
 
 
@@ -255,9 +259,9 @@ async def request_tokens(code: str) -> Tuple[str, str]:
     LOG.debug(f"set up token request using code: {code}")
 
     # set up basic auth and payload
-    auth = httpx.BasicAuth(username=CONFIG["client_id"], password=CONFIG["client_secret"])
+    auth = httpx.BasicAuth(username=CONFIG["CLIENT_ID"], password=CONFIG["CLIENT_SECRET"])
     LOG.debug("basic auth is set")
-    data = {"grant_type": "authorization_code", "code": code, "redirect_uri": CONFIG["url_callback"]}
+    data = {"grant_type": "authorization_code", "code": code, "redirect_uri": CONFIG["URL_CALLBACK"]}
     LOG.debug(f"post payload: {data}")
 
     async with httpx.AsyncClient(auth=auth, verify=False, timeout=DEFAULT_TIMEOUT) as client:
@@ -283,7 +287,7 @@ async def revoke_token(token: str) -> None:
     if not CONFIG["url_revoke"]:
         # some AAI systems might not provide a revocation endpoint
         return
-    auth = httpx.BasicAuth(username=CONFIG["client_id"], password=CONFIG["client_secret"])
+    auth = httpx.BasicAuth(username=CONFIG["CLIENT_ID"], password=CONFIG["CLIENT_SECRET"])
     params = {"token": token}
 
     async with httpx.AsyncClient(auth=auth, verify=False, timeout=DEFAULT_TIMEOUT) as client:
