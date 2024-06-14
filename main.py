@@ -24,6 +24,7 @@ ENV_VARS = {
     "URL_CALLBACK",
     "URL_REDIRECT",
     "SCOPE",
+    "RESOURCE",
     "COOKIE_DOMAIN",
     "CORS_DOMAINS",
     "DEBUG",
@@ -133,7 +134,7 @@ async def login_endpoint():
         "scope": CONFIG["SCOPE"],
     }
     # optional param for special cases
-    if "resource" in CONFIG:
+    if "RESOURCE" in CONFIG:
         params["resource"] = CONFIG["RESOURCE"]
 
     # prepare the redirection response
