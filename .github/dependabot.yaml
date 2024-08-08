@@ -5,3 +5,8 @@ updates:
     schedule:
       interval: "monthly"
       day: "monday"
+  - package-ecosystem: docker
+    directory: "/"
+    schedule:
+      interval: "monthly"
+      day: "monday"
