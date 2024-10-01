@@ -1,4 +1,4 @@
-FROM python:3.12.5-alpine3.19 as BUILD
+FROM python:3.12.6-alpine3.19 as BUILD
 
 RUN apk add --update \
     && apk add --no-cache --virtual build-base libressl-dev libffi-dev gcc musl-dev python3-dev \
@@ -9,7 +9,7 @@ COPY requirements.txt /root/requirements.txt
 RUN pip install --upgrade pip && \
     pip install -r /root/requirements.txt
 
-FROM python:3.12.5-alpine3.19
+FROM python:3.12.6-alpine3.19
 
 RUN apk add --no-cache --update bash
 
