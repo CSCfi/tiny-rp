@@ -134,8 +134,8 @@ async def login_endpoint():
         "scope": CONFIG["SCOPE"],
     }
     # optional param for special cases
-    if "RESOURCE" in CONFIG:
-        params["resource"] = CONFIG["RESOURCE"]
+    if resource := CONFIG.get("RESOURCE", ""):
+        params["resource"] = resource
 
     # prepare the redirection response
     url = CONFIG["url_auth"] + "?" + urlencode(params)
